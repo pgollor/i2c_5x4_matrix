@@ -1,22 +1,22 @@
 /**
- * @file i2c_5x4_mat.pde
+ * @file i2c_5x4_mat.ino
+ *
  * @date 2015-05-01
  * @author Pascal Gollor ( http://www.pgollor.de/cms/ )
  * 
- * @brief This is a i2c client wich send the last pressed key from 5x4 keypad (matrix) after request to the bus master.
+ * @mainpage I2C keypad client
+ * This is a i2c client wich send the last pressed key from 5x4 keypad (matrix) after request to the bus master.
  *
- *
- * license:
- * ----- english version below -----
+ * @section license License 
+ * <pre>----- english version below -----</pre>
  * Dieses Material steht unter der Creative-Commons-Lizenz Namensnennung 4.0 International.
  * Um eine Kopie dieser Lizenz zu sehen, besuchen Sie http://creativecommons.org/licenses/by/4.0/.
- * cc-by Pascal Gollor
- *
+ * <br>cc-by Pascal Gollor <br> <br>
  * This work is licensed under the Creative Commons Attribution 4.0 International License.
  * To view a copy of this license, visit http://creativecommons.org/licenses/by/4.0/.
- * cc-by Pascal Gollor
+ * <br> cc-by Pascal Gollor <br> <br>
  *
- * 
+ * @section other other authors
  * the keypad code comes from from Alexander Brevig <alexanderbrevig@gmail.com>
  */
 #include <Keypad.h>
