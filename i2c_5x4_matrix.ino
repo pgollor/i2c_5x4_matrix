@@ -69,6 +69,8 @@ byte colPins[COLS] = {A3, A2, A1, A0};
 /// address pins
 enum ADDRESS {ADR_2 = 8, ADR_1, ADR_0};
 
+#define DEBUG 0
+
 
 // ------ variables -------
 // ---------- \/ ----------
@@ -105,6 +107,7 @@ void i2c_requestEvent()
  */
 void i2c_receiveEvent(int data_length)
 {
+#if DEBUG >= 1
   while (1 < Wire.available()) // loop through all but the last
   {
     char c = Wire.read(); // receive byte as a character
@@ -112,6 +115,16 @@ void i2c_receiveEvent(int data_length)
   }
   int x = Wire.read();    // receive byte as an integer
   Serial.println(x);         // print the integer
+  
+  // we have send init condition
+  if (x == 100)
+#else
+  if (Wire.read() == 100)
+#endif
+  {
+    g_data[0] = 101;
+    g_data[1] = 101;
+  }
 }
 
 
@@ -139,7 +152,9 @@ void setup()
   Wire.onRequest(i2c_requestEvent);
   Wire.onReceive(i2c_receiveEvent);
   
+#if DEBUG >= 1
   Serial.begin(57600);
+#endif
 }
 
 
@@ -175,7 +190,9 @@ void loop()
     g_data[1] = customKey;
     last_key_pressed = millis();
 
+#if DEBUG >= 1
     Serial.println(customKey, DEC);
+#endif
   }
 }
 
