@@ -17,7 +17,7 @@
  * <br> cc-by Pascal Gollor <br> <br>
  *
  * @section other other authors
- * the keypad code comes from from Alexander Brevig <alexanderbrevig@gmail.com>
+ * The keypad code comes from from Alexander Brevig <alexanderbrevig@gmail.com>
  */
 #include <Keypad.h>
 #include <Wire.h>
@@ -52,7 +52,7 @@ byte colPins[COLS] = {A3, A2, A1, A0};
 
 
 /** 
- * @defgroup alive signal to the world
+ * @brief alive signal to the world
  * @{
  */
 #define ALIVE_LED     13
@@ -62,13 +62,24 @@ byte colPins[COLS] = {A3, A2, A1, A0};
 /// set timeout after x ms
 #define KEY_PRESSED_TIMEOUT 200
 
-
-/// I2C address. Last three bits are set via Pin 10, 9, 8
+/// I2C address. Last three bits are set via Pin 9, 8, 7
 #define BASIC_ADDRESS 0b1110000
 
 /// address pins
-enum ADDRESS {ADR_2 = 8, ADR_1, ADR_0};
+enum ADDRESS {ADR_2 = 7, ADR_1, ADR_0};
 
+/// kontrast pwm out pin
+#define DISPLAY_CONTRAST 10
+
+/**
+ * @breif protocol
+ * @{
+ */
+#define PROTOCOL_COMMAND_INIT 100
+#define PROTOCOL_SET_CONTRAST 150
+/// @}
+
+/// debug level
 #define DEBUG 0
 
 
@@ -81,8 +92,8 @@ volatile uint8_t g_data[2] = {100, 0};
 /// last key presse
 unsigned long last_key_pressed = 0;
 
-//initialize an instance of class NewKeypad
-Keypad customKeypad = Keypad( makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS); 
+// initialize an instance of class NewKeypad
+Keypad customKeypad = Keypad(makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS);
 
 
 // ------ functions -------
@@ -99,6 +110,10 @@ void i2c_requestEvent()
 
   g_data[0] = 100;
   g_data[1] = 0;
+
+#if DEBUG >= 3
+  Serial.println("Request data.");
+#endif
 }
 
 /** @brief i2c receive event
@@ -107,24 +122,38 @@ void i2c_requestEvent()
  */
 void i2c_receiveEvent(int data_length)
 {
-#if DEBUG >= 1
-  while (1 < Wire.available()) // loop through all but the last
-  {
-    char c = Wire.read(); // receive byte as a character
-    Serial.print(c);         // print the character
-  }
-  int x = Wire.read();    // receive byte as an integer
-  Serial.println(x);         // print the integer
-  
-  // we have send init condition
-  if (x == 100)
-#else
-  if (Wire.read() == 100)
+  uint8_t x = Wire.read();
+
+#if DEBUG >= 2
+  Serial.println("New package begin:");
+  Serial.println(x, DEC);
 #endif
+
+  // we have send init condition
+  if (x == PROTOCOL_COMMAND_INIT)
   {
     g_data[0] = 101;
     g_data[1] = 101;
   }
+  else if (x == PROTOCOL_SET_CONTRAST)
+  {
+    x = Wire.read();
+#if DEBUG >= 2
+  Serial.println(x, DEC);
+#endif
+
+    analogWrite(DISPLAY_CONTRAST, x);
+  }
+
+#if DEBUG >= 2
+  while (Wire.available())
+  {
+    x = Wire.read();
+    Serial.println(x, DEC);
+  }
+
+  Serial.println("New package end.");
+#endif  
 }
 
 
@@ -154,7 +183,11 @@ void setup()
   
 #if DEBUG >= 1
   Serial.begin(57600);
+  Serial.println("I2C 5x4 Matrix");
 #endif
+
+  // inint display contrast
+  analogWrite(DISPLAY_CONTRAST, 255);
 }
 
 
