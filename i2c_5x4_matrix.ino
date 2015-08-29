@@ -19,7 +19,7 @@
  * @section other other authors
  * The keypad code comes from from Alexander Brevig <alexanderbrevig@gmail.com>
  */
-#include <Keypad.h>
+#include "Keypad.h"
 #include <Wire.h>
 
 
@@ -48,6 +48,7 @@ byte rowPins[ROWS] = {2, 3, 4, 5, 6};
 
 //connect to the column pinouts of the keypad
 byte colPins[COLS] = {A3, A2, A1, A0};
+//byte colPins[COLS] = {A0, A1, A2, A3};
 /// @}
 
 
@@ -60,27 +61,31 @@ byte colPins[COLS] = {A3, A2, A1, A0};
 /// @}
 
 /// set timeout after x ms
-#define KEY_PRESSED_TIMEOUT 200
+#define KEY_PRESSED_TIMEOUT 100
 
 /// I2C address. Last three bits are set via Pin 9, 8, 7
 #define BASIC_ADDRESS 0b1110000
 
 /// address pins
-enum ADDRESS {ADR_2 = 7, ADR_1, ADR_0};
+enum ADDRESS {ADR_0 = 7, ADR_1};
 
-/// kontrast pwm out pin
-#define DISPLAY_CONTRAST 10
+/// contrast pwm out pin
+#define DISPLAY_CONTRAST   10
+
+/// Display backlight output pin. 0 means feature disabled.
+#define DISPLAY_BACKLIGHT  9
 
 /**
  * @breif protocol
  * @{
  */
-#define PROTOCOL_COMMAND_INIT 100
-#define PROTOCOL_SET_CONTRAST 150
+#define PROTOCOL_COMMAND_INIT   100 ///< Initial command
+#define PROTOCOL_SET_CONTRAST   150 ///< set contrast pwm value between 0 and 255
+#define PROTOCOL_SET_BACKLIGHT  151 ///< set backlight pwm value between 0 and 255
 /// @}
 
 /// debug level
-#define DEBUG 0
+#define DEBUG 5
 
 
 // ------ variables -------
@@ -139,11 +144,24 @@ void i2c_receiveEvent(int data_length)
   {
     x = Wire.read();
 #if DEBUG >= 2
-  Serial.println(x, DEC);
+    Serial.print("Contrast: ");
+    Serial.println(x, DEC);
 #endif
 
     analogWrite(DISPLAY_CONTRAST, x);
   }
+#if DISPLAY_BACKLIGHT > 0
+  else if (x == PROTOCOL_SET_BACKLIGHT)
+  {
+    x = Wire.read();
+#if DEBUG >= 2
+    Serial.print("Backlight: ");
+    Serial.println(x, DEC);
+#endif
+
+    analogWrite(DISPLAY_BACKLIGHT, x);
+  }
+#endif
 
 #if DEBUG >= 2
   while (Wire.available())
@@ -165,11 +183,10 @@ void setup()
   // digital pin management
   pinMode(ADR_0, INPUT);
   pinMode(ADR_1, INPUT);
-  pinMode(ADR_2, INPUT);
   pinMode(ALIVE_LED, OUTPUT);
   
   // read sub adress bits
-  address |= digitalRead(ADR_0) | (digitalRead(ADR_1) << 1) | (digitalRead(ADR_2) << 2);
+  address |= digitalRead(ADR_0) | (digitalRead(ADR_1) << 1);
   
   // set i2c speed
   Wire.setClock(100000L);
@@ -188,10 +205,13 @@ void setup()
 
   // inint display contrast
   analogWrite(DISPLAY_CONTRAST, 255);
+#if DISPLAY_BACKLIGHT > 0
+  analogWrite(DISPLAY_BACKLIGHT, 10);
+#endif
 }
 
 
-// arduino main loop functino
+// arduino main loop function
 void loop()
 {
   static unsigned long last_state_change = 0;
