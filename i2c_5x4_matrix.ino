@@ -175,20 +175,22 @@ void i2c_receiveEvent(int data_length)
 }
 
 
-bool g_adjustBacklight = false;
+uint16_t g_adjustBacklight = 0;
 // Taking care of some special events.
 void keypadEvent(KeypadEvent key)
 {
   switch (customKeypad.getState())
   {
   case PRESSED:
-    if (key == '#')
-    {
-    }
     break;
 
   case RELEASED:
-    if (!g_adjustBacklight)
+    if (g_adjustBacklight == 1 && key != 20)
+    {
+      g_adjustBacklight++;
+    }
+  
+    if (g_adjustBacklight < 2)
     {
       g_data[0] = 100;
       g_data[1] = key;
@@ -204,16 +206,20 @@ void keypadEvent(KeypadEvent key)
 
     if (key == 20)
     {
-      g_adjustBacklight = false;
+      g_adjustBacklight = 0;
     }
     
     break;
 
   case HOLD:
-    if (key == 20)
+    if (key == 20 and g_adjustBacklight == 0)
     {
-      g_adjustBacklight = true; 
+      g_adjustBacklight++;
     }
+
+    break;
+
+  default:
     break;
   }
 
@@ -225,10 +231,12 @@ void keypadEvent(KeypadEvent key)
   Serial.print(" - key: ");
   Serial.println(key, DEC);
 
+  /*
   if (customKeypad.getKeys())
   {
     Serial.println(customKeypad.key[1].kchar, DEC);
   }
+  */
 #endif
 
 Serial.flush();
@@ -240,7 +248,7 @@ void setup()
 {
   byte address = BASIC_ADDRESS;
 
-  g_adjustBacklight = false;
+  g_adjustBacklight = 0;
   
   // digital pin management
   pinMode(ADR_0, INPUT);
@@ -266,6 +274,8 @@ void setup()
 #if DEBUG >= 1
   Serial.begin(57600);
   Serial.println("I2C 5x4 Matrix");
+  Serial.print("Debug level: ");
+  Serial.println(DEBUG);
 #endif
 
   // init display contrast
@@ -280,11 +290,15 @@ void setup()
 void loop()
 {
   static unsigned long last_state_change = 0;
-  char customKey = customKeypad.getKey();
+  //char customKey = customKeypad.getKey();
+  customKeypad.getKeys();
   String msg = "";
   static uint8_t blight = 0;
 
-  if (g_adjustBacklight)
+  return;
+
+  /*
+  if (g_adjustBacklight == 1)
   {
     if (customKey == 13)
     {
@@ -320,6 +334,7 @@ void loop()
 
     return;
   }
+  */
 
 
   if (millis() - last_state_change >= ALIVE_PERIOD)
