@@ -85,7 +85,7 @@ enum ADDRESS {ADR_0 = 7, ADR_1};
 /// @}
 
 /// debug level
-#define DEBUG 5
+#define DEBUG 2
 
 
 // ------ variables -------
@@ -175,15 +175,80 @@ void i2c_receiveEvent(int data_length)
 }
 
 
+bool g_adjustBacklight = false;
+// Taking care of some special events.
+void keypadEvent(KeypadEvent key)
+{
+  switch (customKeypad.getState())
+  {
+  case PRESSED:
+    if (key == '#')
+    {
+    }
+    break;
+
+  case RELEASED:
+    if (!g_adjustBacklight)
+    {
+      g_data[0] = 100;
+      g_data[1] = key;
+      last_key_pressed = millis();
+
+#if DEBUG >= 1
+      Serial.write('[');
+      Serial.print(millis());
+      Serial.print("] new key: ");
+      Serial.println(key, DEC);
+#endif
+    }
+
+    if (key == 20)
+    {
+      g_adjustBacklight = false;
+    }
+    
+    break;
+
+  case HOLD:
+    if (key == 20)
+    {
+      g_adjustBacklight = true; 
+    }
+    break;
+  }
+
+#if DEBUG >= 2
+  Serial.write('[');
+  Serial.print(millis());
+  Serial.print("] state: ");
+  Serial.print(customKeypad.getState());
+  Serial.print(" - key: ");
+  Serial.println(key, DEC);
+
+  if (customKeypad.getKeys())
+  {
+    Serial.println(customKeypad.key[1].kchar, DEC);
+  }
+#endif
+
+Serial.flush();
+}
+
+
 /// arduino setup function
 void setup()
 {
   byte address = BASIC_ADDRESS;
+
+  g_adjustBacklight = false;
   
   // digital pin management
   pinMode(ADR_0, INPUT);
   pinMode(ADR_1, INPUT);
   pinMode(ALIVE_LED, OUTPUT);
+
+  // register keypad event
+  customKeypad.addEventListener(keypadEvent);
   
   // read sub adress bits
   address |= digitalRead(ADR_0) | (digitalRead(ADR_1) << 1);
@@ -203,7 +268,7 @@ void setup()
   Serial.println("I2C 5x4 Matrix");
 #endif
 
-  // inint display contrast
+  // init display contrast
   analogWrite(DISPLAY_CONTRAST, 255);
 #if DISPLAY_BACKLIGHT > 0
   analogWrite(DISPLAY_BACKLIGHT, 10);
@@ -216,6 +281,46 @@ void loop()
 {
   static unsigned long last_state_change = 0;
   char customKey = customKeypad.getKey();
+  String msg = "";
+  static uint8_t blight = 0;
+
+  if (g_adjustBacklight)
+  {
+    if (customKey == 13)
+    {
+      if (blight <= 240)
+      {
+        blight += 10;
+      }
+      else
+      {
+        blight = 255;
+      }
+    }
+    else if (customKey == 14)
+    {
+      if (blight >= 10)
+      {
+        blight -= 10;
+      }
+      else
+      {
+        blight = 0;
+      }
+    }
+    else
+    {
+      return;
+    }
+    
+    Serial.print("blight pwm: ");
+    Serial.println(blight);
+    
+    analogWrite(DISPLAY_BACKLIGHT, blight);
+
+    return;
+  }
+
 
   if (millis() - last_state_change >= ALIVE_PERIOD)
   {
@@ -237,6 +342,7 @@ void loop()
     g_data[1] = 0;
   }
 
+  /*
   if (customKey)
   {
     g_data[0] = 100;
@@ -244,8 +350,12 @@ void loop()
     last_key_pressed = millis();
 
 #if DEBUG >= 1
+    KeyState k = customKeypad.getState();
+    Serial.print(k, DEC);
+    Serial.print(": ");
     Serial.println(customKey, DEC);
 #endif
   }
+  */
 }
 
