@@ -75,6 +75,11 @@ enum ADDRESS {ADR_0 = 7, ADR_1};
 /// Display backlight output pin. 0 means feature disabled.
 #define DISPLAY_BACKLIGHT  9
 
+#ifndef GIT_HASH
+  /// latest git commit hash
+  #define GIT_HASH "0000000"
+#endif
+
 /**
  * @breif protocol
  * @{
@@ -201,6 +206,8 @@ void setup()
 #if DEBUG >= 1
   Serial.begin(57600);
   Serial.println("I2C 5x4 Matrix");
+  Serial.print("Git hash: ");
+  Serial.println(GIT_HASH);
 #endif
 
   // inint display contrast
